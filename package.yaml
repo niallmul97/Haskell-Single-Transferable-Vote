@@ -1,0 +1,58 @@
+name:                NiallSTV
+version:             0.1.0.0
+github:              "githubuser/NiallSTV"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2020 Author name here"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/NiallSTV#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Lib
+    - Clean.CleanVotes
+    - Count.CountVotes
+    - AltVote.AlternativeVote
+  other-modules: []
+  dependencies:
+    - split
+
+executables:
+  NiallSTV-exe:
+    main:                Main.hs
+    source-dirs:         app
+    other-modules: []
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - split
+    - NiallSTV
+
+tests:
+  NiallSTV-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - NiallSTV
