@@ -27,7 +27,12 @@ applyCandidatesFirstPrefBallots candidates votes = map (candidatesFirstPrefBallo
 
 countFirstPref candidate = (fst candidate, length(snd candidate))
 
-getCountFirstPref votes candidates = map (countFirstPref) (applyCandidatesFirstPrefBallots candidates (splitBallotHeadTail votes))
+getCountFirstPref votes candidates = reverse $ sortBy (compare `on` snd) $ map (countFirstPref) (applyCandidatesFirstPrefBallots candidates (splitBallotHeadTail votes))
+
+-- sortByCount ballot = sortBy (compare `on` snd) ballot
+--
+-- rankedVotes :: [[String]] -> [String] -> [(String, Int)]
+-- rankedVotes votes candidates = map (sortByCount) (getCountFirstPref votes candidates)
 --get length of second element in each tuple, ie list of first prefs
 --get quota
 --check who was first passed the quota
