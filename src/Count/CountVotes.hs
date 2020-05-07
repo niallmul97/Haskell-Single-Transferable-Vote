@@ -5,10 +5,6 @@ import Text.Read
 import Data.List.Split (splitOn)
 import Data.Function (on)
 
---List of winners
-winners:: [(String, Float)]
-winners = []
-
 --Variable for vote weight, inital value is 1.0
 weight:: Float
 weight = 1.0
@@ -31,12 +27,12 @@ stringToInt string = read string::Int
 
 --Splits a ballot into a tuple where the head is the first element, the tail the second,
 -- and the weight of the vote is the third.
-ballotHeadTail:: [String] -> (String, [String], Float)
-ballotHeadTail (x:xs) = (x, xs, weight)
+ballotSplitAddWeight:: [String] -> (String, [String], Float)
+ballotSplitAddWeight (x:xs) = (x, xs, weight)
 
 --Maps the list of votes to the ballotHeadTail Function
-splitBallotHeadTail:: [[String]] -> [(String, [String], Float)]
-splitBallotHeadTail votes = map (ballotHeadTail) votes
+votesSplitAddWeight:: [[String]] -> [(String, [String], Float)]
+votesSplitAddWeight votes = map (ballotSplitAddWeight) votes
 
 --Takes in the list of votes and a candidate, outputs a tuple, where the first element is the candidate,
 --the second is a list of tuples, in which the first element is the list of ballots where the candidate
@@ -53,67 +49,60 @@ applyCandidatesFirstPrefBallots candidates votes = map (candidatesFirstPrefBallo
 countFirstPref :: (String, [([String], Float)]) -> (String, Float)
 countFirstPref candidate = (fst candidate, sum $ map (snd) (snd candidate))
 
+--Maps countFirstPref to the split votes sorting the candidates in reverse order by their total vote weight
 getCountFirstPref ::[(String, [String], Float)] -> [String] -> [(String, Float)]
 getCountFirstPref votes candidates = reverse $ sortBy (compare `on` snd) $ map (countFirstPref) $ applyCandidatesFirstPrefBallots candidates votes
 
+--Returns the list of candidates that were above the quota with their vote weight
 candidatesAboveQuota :: Float -> [(String, [String], Float)] -> [String] -> [(String, Float)]
 candidatesAboveQuota quota votes candidates = filter((>quota) . realToFrac . snd) $ getCountFirstPref votes candidates
 
+--Returns the winner of the round with their vote weight
+roundWinner:: Float -> [(String, [String], Float)] -> [String] -> [(String, Float)]
 roundWinner quota votes candidates = candidatesAboveQuota quota votes candidates
 
+--Main driver function for STV
 driver :: Float -> [(String, [String], Float)] -> [String] -> [(String, Float)]
 driver quota votes candidates = roundWinner quota (votes ++ newVotes) candidates
   where newVotes = updateWeights (fst . head $ roundWinner quota votes candidates) quota votes
 
+--Splits a ballot where the head is the first element in the tuple,
+--and the tail is the second, with the weight being the third
+splitBallotHeadTail :: (String, [String], Float) -> (String, [String], Float)
+splitBallotHeadTail ballot = (head $ mySnd ballot, tail $ mySnd ballot, myTrd ballot)
 
-  -- print $ findTransferableVotes "D. Milliband" (splitBallotHeadTail votes)
-  --
-  -- let votes2 = updateWeights "D. Milliband" quota (splitBallotHeadTail votes)
-  -- print $ roundWinner quota ((splitBallotHeadTail votes) ++ votes2) candidates
-ballotHeadTail2 :: (String, [String], Float) -> (String, [String], Float)
-ballotHeadTail2 ballot = (head $ mySnd ballot, tail $ mySnd ballot, myTrd ballot)
-
-splitballotHeadTail2 :: [(String, [String], Float)] -> [(String, [String], Float)]
-splitballotHeadTail2 votes = map (ballotHeadTail2) votes
+--Maps the votes to the splitBallotHeadTail function
+splitVotesHeadTail :: [(String, [String], Float)] -> [(String, [String], Float)]
+splitVotesHeadTail votes = map (splitBallotHeadTail) votes
 
 --finds list of transferable votes
 findTransferableVotes :: String -> [(String, [String], Float)] -> [(String, [String], Float)]
-findTransferableVotes candidate votes = splitballotHeadTail2 $ filter((/=[]).mySnd) $ filter((==candidate).myFst) votes
+findTransferableVotes candidate votes = splitVotesHeadTail $ filter((/=[]).mySnd) $ filter((==candidate).myFst) votes
 
+--calculats the new weight for the transferable votes
 newWeight:: Float -> [(String, [String], Float)] -> String -> Float
 newWeight quota votes candidate = (a - quota ) / b
   where a = sum $ map (myTrd) $ filter((==candidate).myFst) votes
         b = sum $ map (myTrd) $ findTransferableVotes candidate votes
 
-
+--applies the new weight to the transferable votes
 updateWeights:: String -> Float -> [(String, [String], Float)] -> [(String, [String], Float)]
 updateWeights candidate quota votes = map (\x -> (myFst x, mySnd x, myTrd x * y)) (findTransferableVotes candidate votes)
   where y = newWeight quota votes candidate
 
--- updateVotes candidate = candidatesFirstPrefBallots (findTransferableVotes candidate votes) candidate
-
--- removes candidate
+-- removes candidate from the candidates list
 updateCandidates :: String -> [String] -> [String]
 updateCandidates _ [] = []
 updateCandidates candidate (x : xs)
   | candidate == x = xs
   | otherwise = x : xs
 
--- driver :: Float -> [[String]] -> [String] -> Int -> Int -> [(String, Float)] -> [(String, Float)]
--- driver quota votes candidates 0 _ _ = roudWinner quota votes candidates
--- driver quota votes candidates seatsFilled seats winners
---                  | seatsFilled == seats = winners
---                  | otherwise = roundWinner quota (updateVotes votes) (updateCandidates candidates)
-
+--gets the number of votes for calculating the quota
 numberOfValidVotes :: [[String]] -> Int
 numberOfValidVotes votes = length votes
 
+--calculates the quota
 findQuota :: Float -> [[String]] -> Float
 findQuota seats votes = 1 + (a / (b + 1))
   where a = fromIntegral $ numberOfValidVotes votes :: Float
         b = seats
-
---Find weight of transferable votes
---calculate the new weight and apply to the transferable votes
---redistribute that second element of whoever was first passed quota with the new weight, ie second element into splitBallotHeadTail
---repeat

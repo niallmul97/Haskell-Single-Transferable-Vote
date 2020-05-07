@@ -1,10 +1,5 @@
 module AltVote.AlternativeVote where
-
-import Debug.Trace
 import Data.List
-import Text.Read
-import Data.List.Split (splitOn)
-import Data.Function (on)
 
 count :: Eq a => a -> [a] -> Int
 count x = length . filter (== x)
